@@ -1,25 +1,19 @@
 use crate::convex_hull_algorithm::ConvexHullAlgorithm;
+use crate::random_point_set::RandomPointSet;
 
-pub struct Experiment<A: ConvexHullAlgorithm> {
-	pub algorithm: A
+pub struct Experiment<A: ConvexHullAlgorithm, B: RandomPointSet> {
+	pub algorithm: A,
+	pub random_point_set: B
 }
 
-impl<A: ConvexHullAlgorithm> Experiment<A> {
+impl<A: ConvexHullAlgorithm, B: RandomPointSet> Experiment<A, B> {
 	pub fn run(&self) {
-		let mut points: Vec<(f64,f64)> = vec![
-			(1.0,1.0),
-			(3.0,0.0),
-			(4.0,3.0),
-			(3.0,5.0),
-			(0.0,4.0),
-			(6.0,4.0),
-			(2.0,2.0),
-			(3.0,1.0)
-		];
 
-		let hull = self.algorithm.convex_hull(&mut points);
-		for p in hull.iter() {
-			println!("CH point: {:?}", p);
+		for i in 3..1_000 {
+			let mut points = self.random_point_set.generate(i);
+			let hull = self.algorithm.convex_hull(&mut points);
+			println!("Completed experiment for n = {} with hull_c = {}", i, hull.len());
 		}
+
 	}
 }
