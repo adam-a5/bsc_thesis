@@ -1,6 +1,7 @@
 use crate::random_point_set::RandomPointSet;
 use rand::Rng;
 
+#[derive(Clone)]
 pub struct RandomRectanglePointSet {
 	width: f64,
 	height: f64

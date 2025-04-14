@@ -1,5 +1,6 @@
 use crate::convex_hull_algorithm::ConvexHullAlgorithm;
 
+#[derive(Clone)]
 pub struct AndrewsMonotoneChain;
 
 impl AndrewsMonotoneChain {

@@ -1,7 +1,6 @@
 use std::time::Instant;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::Path;
 
 use crate::convex_hull_algorithm::ConvexHullAlgorithm;
 use crate::random_point_set::RandomPointSet;
@@ -12,11 +11,11 @@ pub struct Experiment<A: ConvexHullAlgorithm, B: RandomPointSet> {
 }
 
 impl<A: ConvexHullAlgorithm, B: RandomPointSet> Experiment<A, B> {
-	pub fn run(&self, max_vertex_count: u64, trial_count: u64) {
+	pub fn run(&self, max_vertex_count: u64, trial_count: u64, step_size: usize) {
 
 		let mut experiment_results: Vec<(u64, f64)> = Vec::new();
 
-		for i in 3..max_vertex_count {
+		for i in (3..=max_vertex_count).step_by(step_size) {
 
 			let mut total_ns: u128 = 0;
 
