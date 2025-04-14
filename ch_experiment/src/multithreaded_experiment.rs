@@ -50,8 +50,8 @@ impl<
 					let mut total_size: u64 = 0;
 
 					for _ in 0..trial_count {
-						let mut points = self.random_point_set.generate(i);
-						let hull = self.algorithm.convex_hull(&mut points);
+						let mut points = point_generator.generate(current_n);
+						let hull = algorithm.convex_hull(&mut points);
 						total_size += hull.len() as u64;
 					}
 

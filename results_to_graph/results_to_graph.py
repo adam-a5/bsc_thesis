@@ -10,7 +10,7 @@ plt.figure(figsize=(8, 6))
 plt.plot(df['input_size'], df['hull_size'], marker='o', linestyle='-', markersize=3, label='Trend')
 plt.xlabel('Input Size n')
 plt.ylabel('Average Hull Size')
-plt.title('Complexity of hull Size')
+plt.title('Growth of Convex Hull Size')
 plt.legend()
 
 plt.savefig('graph.png', bbox_inches='tight')
