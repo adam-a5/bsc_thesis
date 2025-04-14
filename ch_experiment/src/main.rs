@@ -15,5 +15,5 @@ fn main() {
 		algorithm: AndrewsMonotoneChain,
 		random_point_set: rrps
 	};
-	exp.run(100_000, 50, 500);	
+	exp.run(20_000, 50, 50);	
 }
