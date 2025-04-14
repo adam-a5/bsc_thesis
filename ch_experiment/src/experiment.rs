@@ -17,22 +17,19 @@ impl<A: ConvexHullAlgorithm, B: RandomPointSet> Experiment<A, B> {
 
 		for i in (3..=max_vertex_count).step_by(step_size) {
 
-			let mut total_ns: u128 = 0;
+			let mut total_size: u64 = 0;
 
 			for _ in 0..trial_count {
 				let mut points = self.random_point_set.generate(i);
-				let start = Instant::now();
-				let _ = self.algorithm.convex_hull(&mut points);
-				let duration = start.elapsed();
-				let duration_ns = duration.as_nanos();
-				total_ns += duration_ns;
+				let hull = self.algorithm.convex_hull(&mut points);
+				total_size += hull.len() as u64;
 			}
 
-			let average_duration: f64 = total_ns as f64 / trial_count as f64;
+			let average_hull_size: f64 = total_size as f64 / trial_count as f64;
 
-			experiment_results.push((i, average_duration));
+			experiment_results.push((i, average_hull_size));
 
-			println!("Completed {} trials of {} verticies with an average of {}", trial_count, i, average_duration);
+			println!("Completed {} trials of {} verticies with an average of {}", trial_count, i, average_hull_size);
 
 		}
 
@@ -42,7 +39,7 @@ impl<A: ConvexHullAlgorithm, B: RandomPointSet> Experiment<A, B> {
 			.open("experiment_results.csv")
 			.expect("Could not open/create results file.");
 		
-		let header_line = "input_size,duration\n";
+		let header_line = "input_size,hull_size\n";
 		file.write_all(header_line.as_bytes()).expect("Couldn't write header line.");
 		
 		for result in experiment_results.iter() {

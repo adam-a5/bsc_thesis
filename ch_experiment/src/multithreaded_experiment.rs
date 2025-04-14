@@ -47,21 +47,19 @@ impl<
 						queue.pop_front().unwrap()
 					};
 
-					let mut total_ns: u128 = 0;
+					let mut total_size: u64 = 0;
+
 					for _ in 0..trial_count {
-						let mut points = point_generator.generate(current_n);
-						
-						let start = Instant::now();
-						let _ = algorithm.convex_hull(&mut points);
-						let duration = start.elapsed();
-						let duration_ns = duration.as_nanos();
-						total_ns += duration_ns;
+						let mut points = self.random_point_set.generate(i);
+						let hull = self.algorithm.convex_hull(&mut points);
+						total_size += hull.len() as u64;
 					}
-					let average_duration: f64 = total_ns as f64 / trial_count as f64;
+
+					let average_hull_size: f64 = total_size as f64 / trial_count as f64;
 
 					{
 						let mut results = experiment_results.lock().unwrap();
-						results.push((current_n, average_duration));
+						results.push((current_n, average_hull_size));
 					}
 
 					println!("Just completed: {}", current_n);
@@ -86,7 +84,7 @@ impl<
 			.open("experiment_results.csv")
 			.expect("Could not open/create results file.");
 		
-		let header_line = "input_size,duration\n";
+		let header_line = "input_size,hull_size\n";
 		file.write_all(header_line.as_bytes()).expect("Couldn't write header line.");
 		
 		for result in results.iter() {
