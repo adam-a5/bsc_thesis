@@ -1,7 +1,10 @@
 import http.server
 import urllib.parse
+import threading
 
 experiments = {}
+
+experiments_lock = threading.Lock()
 
 class ExperimentHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 	def do_POST(self):
@@ -30,7 +33,8 @@ class ExperimentHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 			self.wfile.write(b"Status and total must be integers.")
 			return
 
-		experiments[experiment_id] = (status, total)
+		with experiments_lock:
+			experiments[experiment_id] = (status, total)
 
 		self.send_response(200)
 		self.send_header('Content-type', 'text/plain')
@@ -59,16 +63,17 @@ class ExperimentHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 					<th>Percent Complete</th>
 				</tr>
 		"""
-		for exp_id, (status, total) in experiments.items():
-			percent = (status / total * 100) if total else 0
-			response_html += f"""
-				<tr>
-					<td>{exp_id}</td>
-					<td>{status}</td>
-					<td>{total}</td>
-					<td>{percent:.2f}%</td>
-				</tr>
-			"""
+		with experiments_lock:
+			for exp_id, (status, total) in experiments.items():
+				percent = (status / total * 100) if total else 0
+				response_html += f"""
+					<tr>
+						<td>{exp_id}</td>
+						<td>{status}</td>
+						<td>{total}</td>
+						<td>{percent:.2f}%</td>
+					</tr>
+				"""
 		response_html += """
 			</table>
 		</body>
