@@ -29,7 +29,7 @@ fn main() {
 		}
 	};
 
-	let trial_count = match args[2].parse::<u64>() {
+	let trial_count = match args[3].parse::<u64>() {
 		Ok(val) => val,
 		Err(_) => {
 			println!("Invalid trial count provided.");
@@ -37,7 +37,7 @@ fn main() {
 		}
 	};
 
-	let step_size = match args[2].parse::<usize>() {
+	let step_size = match args[4].parse::<usize>() {
 		Ok(val) => val,
 		Err(_) => {
 			println!("Invalid step size provided.");
