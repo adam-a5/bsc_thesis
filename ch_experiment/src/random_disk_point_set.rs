@@ -20,8 +20,8 @@ impl RandomPointSet for RandomDiskPointSet {
 		let mut generator = rand::rng();
 		let mut results: Vec<(f64,f64)> = Vec::new();
 		for _ in 0..count {
-			let theta = generator.gen_range(0.0..2.0*PI);
-			let radius = self.radius * generator.gen_range(0.0..1.0);
+			let theta = generator.random_range(0.0..2.0*PI);
+			let radius = self.radius * generator.random_range(0.0..1.0);
 			let x = radius * theta.cos();
 			let y = radius * theta.sin();
 			results.push((x,y));

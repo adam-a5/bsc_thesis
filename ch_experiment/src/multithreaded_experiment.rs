@@ -1,10 +1,12 @@
-use std::time::Instant;
+use std::time::Duration;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::collections::VecDeque;
 use std::marker::{Send, Sync};
+
+use uuid::Uuid;
 
 use crate::convex_hull_algorithm::ConvexHullAlgorithm;
 use crate::random_point_set::RandomPointSet;
@@ -20,6 +22,8 @@ impl<
 > MultithreadedExperiment<A, B> {
 	pub fn run(&self, max_vertex_count: u64, trial_count: u64, step_size: usize) {
 
+		let uuid = Uuid::new_v4().to_string();
+
 		let experiment_results = Arc::new(Mutex::new(Vec::<(u64,f64)>::new()));
 		let task_queue = Arc::new(Mutex::new(VecDeque::<u64>::new()));
 
@@ -30,7 +34,11 @@ impl<
 			}
 		}
 
-		let thread_target = 11;
+		let available = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
+		let mut thread_target = available - 1;
+		if thread_target == 0 {
+			thread_target = 1;
+		}
 		let mut handles = Vec::new();
 		for _ in 0..thread_target {
 			let experiment_results = experiment_results.clone();
@@ -62,12 +70,35 @@ impl<
 						results.push((current_n, average_hull_size));
 					}
 
-					println!("Just completed: {}", current_n);
 				}
 			});
 			handles.push(handle);
 		}
 
+		let expected_results = max_vertex_count / step_size as u64;
+		let client = reqwest::blocking::Client::new();
+		loop {
+			let progress = {
+				let results = experiment_results.lock().unwrap();
+				if results.len() as u64 >= expected_results {
+					break;
+				}
+				results.len()
+			};
+
+			let request_body = format!(
+				"experiment_id={}&status={}&total={}",
+				uuid,
+				progress,
+				expected_results
+			);
+			let _ = client
+				.post("http://localhost:25565/")
+				.body(request_body)
+				.send();
+			std::thread::sleep(Duration::from_secs(1));
+		}
+		println!("Experiment: Now 100% complete.");
 
 		for handle in handles {
 			handle.join().unwrap();
@@ -81,7 +112,7 @@ impl<
 		let mut file = OpenOptions::new()
 			.create(true)
 			.append(true)
-			.open("experiment_results.csv")
+			.open(format!("result_{}.csv", uuid))
 			.expect("Could not open/create results file.");
 		
 		let header_line = "input_size,hull_size\n";
