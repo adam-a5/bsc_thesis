@@ -75,30 +75,35 @@ impl<
 			handles.push(handle);
 		}
 
-		let expected_results = max_vertex_count / step_size as u64;
-		let client = reqwest::blocking::Client::new();
-		loop {
-			let progress = {
-				let results = experiment_results.lock().unwrap();
-				if results.len() as u64 >= expected_results {
-					break;
-				}
-				results.len()
-			};
+		let uuid_for_reporter = uuid.clone();
+		let experiment_results_for_reporter = experiment_results.clone();
+		let reporter_handle = thread::spawn(move || {
+			let expected_results = max_vertex_count / step_size as u64;
+			let client = reqwest::blocking::Client::new();
+			loop {
+				let progress = {
+					let results = experiment_results_for_reporter.lock().unwrap();
+					if results.len() as u64 >= expected_results {
+						break;
+					}
+					results.len()
+				};
 
-			let request_body = format!(
-				"experiment_id={}&status={}&total={}",
-				uuid,
-				progress,
-				expected_results
-			);
-			let _ = client
-				.post("http://localhost:25565/")
-				.body(request_body)
-				.send();
-			std::thread::sleep(Duration::from_secs(1));
-		}
-		println!("Experiment: Now 100% complete.");
+				let request_body = format!(
+					"experiment_id={}&status={}&total={}",
+					uuid_for_reporter,
+					progress,
+					expected_results
+				);
+				let _ = client
+					.post("http://localhost:25565/")
+					.body(request_body)
+					.send();
+				std::thread::sleep(Duration::from_secs(1));
+			}
+			println!("Experiment: Now 100% complete.");
+		});
+		handles.push(reporter_handle);
 
 		for handle in handles {
 			handle.join().unwrap();
