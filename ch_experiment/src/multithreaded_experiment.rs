@@ -46,31 +46,13 @@ impl<
 			let task_queue = task_queue.clone();
 			let algorithm = self.algorithm.clone();
 			let handle = thread::spawn(move || {
-				loop {
-					let current_n = {
-						let mut queue = task_queue.lock().unwrap();
-						if queue.is_empty() {
-							break;
-						}
-						queue.pop_front().unwrap()
-					};
-
-					let mut total_size: u64 = 0;
-
-					for _ in 0..trial_count {
-						let mut points = point_generator.generate(current_n);
-						let hull = algorithm.convex_hull(&mut points);
-						total_size += hull.len() as u64;
-					}
-
-					let average_hull_size: f64 = total_size as f64 / trial_count as f64;
-
-					{
-						let mut results = experiment_results.lock().unwrap();
-						results.push((current_n, average_hull_size));
-					}
-
-				}
+				Self::worker_thread(
+					task_queue,
+					point_generator,
+					algorithm,
+					experiment_results,
+					trial_count
+				);
 			});
 			handles.push(handle);
 		}
@@ -78,30 +60,12 @@ impl<
 		let uuid_for_reporter = uuid.clone();
 		let experiment_results_for_reporter = experiment_results.clone();
 		let reporter_handle = thread::spawn(move || {
-			let expected_results = max_vertex_count / step_size as u64;
-			let client = reqwest::blocking::Client::new();
-			loop {
-				let progress = {
-					let results = experiment_results_for_reporter.lock().unwrap();
-					if results.len() as u64 >= expected_results {
-						break;
-					}
-					results.len()
-				};
-
-				let request_body = format!(
-					"experiment_id={}&status={}&total={}",
-					uuid_for_reporter,
-					progress,
-					expected_results
-				);
-				let _ = client
-					.post("http://localhost:25565/")
-					.body(request_body)
-					.send();
-				std::thread::sleep(Duration::from_secs(1));
-			}
-			println!("Experiment: Now 100% complete.");
+			Self::reporter_thread(
+				max_vertex_count,
+				step_size,
+				experiment_results_for_reporter,
+				uuid_for_reporter
+			);
 		});
 		handles.push(reporter_handle);
 
@@ -121,12 +85,81 @@ impl<
 			.expect("Could not open/create results file.");
 		
 		let header_line = "input_size,hull_size\n";
-		file.write_all(header_line.as_bytes()).expect("Couldn't write header line.");
+		file.write_all(
+			header_line.as_bytes()
+		).expect("Couldn't write header line.");
 		
 		for result in results.iter() {
 			let line = format!("{},{}\n", result.0, result.1);
-			file.write_all(line.as_bytes()).expect("Could not write to results file.");
+			file.write_all(
+				line.as_bytes()
+			).expect("Could not write to results file.");
 		}
+	}
 
+	pub fn worker_thread(
+		task_queue: Arc<Mutex<VecDeque<u64>>>,
+		point_generator: B,
+		algorithm: A,
+		experiment_results: Arc<Mutex<Vec<(u64,f64)>>>,
+		trial_count: u64
+	) {
+		loop {
+			let current_n = {
+				let mut queue = task_queue.lock().unwrap();
+				if queue.is_empty() {
+					break;
+				}
+				queue.pop_front().unwrap()
+			};
+
+			let mut total_size: u64 = 0;
+
+			for _ in 0..trial_count {
+				let mut points = point_generator.generate(current_n);
+				let hull = algorithm.convex_hull(&mut points);
+				total_size += hull.len() as u64;
+			}
+
+			let average_hull_size: f64 = total_size as f64 / trial_count as f64;
+
+			{
+				let mut results = experiment_results.lock().unwrap();
+				results.push((current_n, average_hull_size));
+			}
+
+		}
+	}
+
+	pub fn reporter_thread(
+		max_vertex_count: u64,
+		step_size: usize,
+		experiment_results: Arc<Mutex<Vec<(u64,f64)>>>,
+		uuid: String
+	) {
+		let expected_results = max_vertex_count / step_size as u64;
+		let client = reqwest::blocking::Client::new();
+		loop {
+			let progress = {
+				let results = experiment_results.lock().unwrap();
+				if results.len() as u64 >= expected_results {
+					break;
+				}
+				results.len()
+			};
+
+			let request_body = format!(
+				"experiment_id={}&status={}&total={}",
+				uuid,
+				progress,
+				expected_results
+			);
+			let _ = client
+				.post("http://localhost:25565/")
+				.body(request_body)
+				.send();
+			std::thread::sleep(Duration::from_secs(1));
+		}
+		println!("Experiment: Now 100% complete.");
 	}
 }
