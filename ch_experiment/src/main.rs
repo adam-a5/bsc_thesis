@@ -4,59 +4,42 @@ mod multithreaded_experiment;
 mod random_point_set;
 mod random_rectangle_point_set;
 mod random_disk_point_set;
-
-use std::env;
+mod experiment_parameters;
 
 use crate::multithreaded_experiment::MultithreadedExperiment;
 use crate::andrews_monotone_chain::AndrewsMonotoneChain;
 use crate::random_disk_point_set::RandomDiskPointSet;
 use crate::random_rectangle_point_set::RandomRectanglePointSet;
+use crate::experiment_parameters::ExperimentParameters;
 
 fn main() {
-	let args: Vec<String> = env::args().collect();
-	if args.len() != 5 {
-		println!("Insufficient number of arguments provided.");
-		return;
-	}
-
-	let point_gen_type = &args[1];
-
-	let max_vertex_count = match args[2].parse::<u64>() {
-		Ok(val) => val,
-		Err(_) => {
-			println!("Invalid max vertex count provided.");
+	let exp_params = match ExperimentParameters::fetch() {
+		Some(e) => e,
+		None => {
 			return;
 		}
 	};
 
-	let trial_count = match args[3].parse::<u64>() {
-		Ok(val) => val,
-		Err(_) => {
-			println!("Invalid trial count provided.");
-			return;
-		}
-	};
-
-	let step_size = match args[4].parse::<usize>() {
-		Ok(val) => val,
-		Err(_) => {
-			println!("Invalid step size provided.");
-			return;
-		}
-	};
-
-	if point_gen_type == "disc" {
+	if exp_params.point_gen_type.as_str() == "disk" {
 		let exp = MultithreadedExperiment {
 			algorithm: AndrewsMonotoneChain,
 			random_point_set: RandomDiskPointSet::new(25_000.0)
 		};
-		exp.run(max_vertex_count, trial_count, step_size);
-	} else if point_gen_type == "rectangle" {
+		exp.run(
+			exp_params.max_vertex_count,
+			exp_params.trial_count,
+			exp_params.step_size
+		);
+	} else if exp_params.point_gen_type.as_str() == "rectangle" {
 		let exp = MultithreadedExperiment {
 			algorithm: AndrewsMonotoneChain,
 			random_point_set: RandomRectanglePointSet::new(25_000.0, 25_000.0)
 		};
-		exp.run(max_vertex_count, trial_count, step_size);
+		exp.run(
+			exp_params.max_vertex_count,
+			exp_params.trial_count,
+			exp_params.step_size
+		);
 	} else {
 		println!("Invalid point generator provided.");
 		return;
