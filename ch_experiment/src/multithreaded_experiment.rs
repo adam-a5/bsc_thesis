@@ -59,7 +59,7 @@ impl<
 
 		let uuid_for_reporter = uuid.clone();
 		let experiment_results_for_reporter = experiment_results.clone();
-		let reporter_handle = thread::spawn(move || {
+		let _ = thread::spawn(move || {
 			Self::reporter_thread(
 				max_vertex_count,
 				step_size,
@@ -67,7 +67,6 @@ impl<
 				uuid_for_reporter
 			);
 		});
-		handles.push(reporter_handle);
 
 		for handle in handles {
 			handle.join().unwrap();
